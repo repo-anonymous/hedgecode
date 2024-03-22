@@ -15,7 +15,7 @@ bash build_data.sh
 
 ##### Relevance Detection Datasets 
 
-> First, download the Cleaned CodeSearchNet Benchmark from [Geogle Drive](https://drive.google.com/file/d/1rd2Tc6oUWBo7JouwexW3ksQ0PaOhUr6h/view). This dataset combines the queries of the test and validation datasets with the ground-truth code snippets in the codebase. And store the data set in the "pairs" folder.
+> First, download the Cleaned CodeSearchNet Benchmark from [Geogle Drive](https://drive.google.com/file/d/1rd2Tc6oUWBo7JouwexW3ksQ0PaOhUr6h/view). This dataset combines the queries of the test and validation datasets with the ground-truth code snippets in the codebase. And store the datasets in the "./detection dataset\pairs" folder.
 > 
 > Then execute the following scripts to build the relevance detection datasets.
 
