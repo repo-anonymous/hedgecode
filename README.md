@@ -130,7 +130,7 @@ lang=ruby
 mode=hcl
 mkdir -p ./saved_models/$lang/$mode/fewshot
 
-python run.py --output_dir=./saved_models/$lang/$mode/fewshot --config_name=microsoft/codebert-base --model_name_or_path=microsoft/codebert-base --tokenizer_name=microsoft/codebert-base --do_train --do_eval --do_test --train_data_file=../../dataset/codesearchnet/$lang/train.jsonl --eval_data_file=../../dataset/codesearchnet/$lang/valid.jsonl --test_data_file=../../dataset/codesearchnet/$lang/test.jsonl --codebase_file=../../dataset/codesearchnet/$lang/codebase.jsonl --detector_path="../../RA/save_results/$lang/codebert/$mode/detector.pth" --num_train_epochs=100 --code_length=256 --nl_length=128 --train_batch_size=64 --eval_batch_size=64 --learning_rate=2e-5 --seed=123456 --fewshot=True 2>&1 | tee saved_models/$lang/$mode/train.log
+python run.py --output_dir=./saved_models/$lang/$mode/fewshot --config_name=microsoft/codebert-base --model_name_or_path=microsoft/codebert-base --tokenizer_name=microsoft/codebert-base --do_train --do_eval --do_test --train_data_file=../../dataset/codesearchnet/$lang/train.jsonl --eval_data_file=../../dataset/codesearchnet/$lang/valid.jsonl --test_data_file=../../dataset/codesearchnet/$lang/test.jsonl --codebase_file=../../dataset/codesearchnet/$lang/codebase.jsonl --detector_path="../../RA/save_results/$lang/codebert/$mode/detector.pth" --num_train_epochs=100 --code_length=256 --nl_length=128 --train_batch_size=64 --eval_batch_size=64 --learning_rate=2e-5 --seed=123456 --fewshot 2>&1 | tee saved_models/$lang/$mode/train.log
 ~~~
 
 > Training with Unixcoder.
@@ -142,10 +142,47 @@ lang=ruby
 mode=hcl
 mkdir -p ./saved_models/$lang/$mode/fewshot
 
-python run.py --output_dir=./saved_models/$lang/$mode/fewshot --config_name=microsoft/unixcoder-base --model_name_or_path=microsoft/unixcoder-base --tokenizer_name=microsoft/unixcoder-base --do_train --do_eval --do_test --train_data_file=../../dataset/codesearchnet/$lang/train.jsonl --eval_data_file=../../dataset/codesearchnet/$lang/valid.jsonl --test_data_file=../../dataset/codesearchnet/$lang/test.jsonl --codebase_file=../../dataset/codesearchnet/$lang/codebase.jsonl --detector_path="../../RA/save_results/$lang/unixcoder/$mode/detector.pth" --num_train_epochs=100 --code_length=256 --nl_length=128 --train_batch_size=64 --eval_batch_size=64 --learning_rate=2e-5 --seed=123456 --fewshot=True 2>&1 | tee saved_models/$lang/$mode/train.log
+python run.py --output_dir=./saved_models/$lang/$mode/fewshot --config_name=microsoft/unixcoder-base --model_name_or_path=microsoft/unixcoder-base --tokenizer_name=microsoft/unixcoder-base --do_train --do_eval --do_test --train_data_file=../../dataset/codesearchnet/$lang/train.jsonl --eval_data_file=../../dataset/codesearchnet/$lang/valid.jsonl --test_data_file=../../dataset/codesearchnet/$lang/test.jsonl --codebase_file=../../dataset/codesearchnet/$lang/codebase.jsonl --detector_path="../../RA/save_results/$lang/unixcoder/$mode/detector.pth" --num_train_epochs=100 --code_length=256 --nl_length=128 --train_batch_size=64 --eval_batch_size=64 --learning_rate=2e-5 --seed=123456 --fewshot 2>&1 | tee saved_models/$lang/$mode/train.log
 ~~~
 
-> Training with CoCoSoDa. Change the "--fewshot=False" in the "run.sh" file to "True", and then execute the following script.
+> Training with CoCoSoDa. Add parameter "--fewshot" in the "run.sh" file, and then execute the following script.
+
+~~~bash
+cd ./MJL/HedgeCode_CoCoSoDa
+
+lang=ruby
+mode=hcl
+
+bash run.sh $lang $mode
+~~~
+
+#### Ablation study
+
+>Train with CodeBERT. Add parameters "--without_ctrd" and "--without_ctc" in the script.
+
+~~~bash
+cd ./MJL/HedgeCode_CodeBERT
+
+lang=ruby
+mode=hcl
+mkdir -p ./saved_models/$lang/$mode/ablation
+
+python run.py --output_dir=./saved_models/$lang/$mode/ablation --without_ctc --without_ctrd --config_name=microsoft/codebert-base --model_name_or_path=microsoft/codebert-base --tokenizer_name=microsoft/codebert-base --do_train --do_eval --do_test --train_data_file=../../dataset/codesearchnet/$lang/train.jsonl --eval_data_file=../../dataset/codesearchnet/$lang/valid.jsonl --test_data_file=../../dataset/codesearchnet/$lang/test.jsonl --codebase_file=../../dataset/codesearchnet/$lang/codebase.jsonl --detector_path="../../RA/save_results/$lang/codebert/$mode/detector.pth" --num_train_epochs=100 --code_length=256 --nl_length=128 --train_batch_size=64 --eval_batch_size=64 --learning_rate=2e-5 --seed=123456 2>&1 | tee saved_models/$lang/$mode/train.log
+~~~
+
+> Training with Unixcoder. Add parameters "--without_ctrd" and "--without_ctc" in the script.
+
+~~~bash
+cd ./MJL/HedgeCode_Unixcoder
+
+lang=ruby
+mode=hcl
+mkdir -p ./saved_models/$lang/$mode/ablation
+
+python run.py --output_dir=./saved_models/$lang/$mode/ablation --without_ctc --without_ctrd --config_name=microsoft/unixcoder-base --model_name_or_path=microsoft/unixcoder-base --tokenizer_name=microsoft/unixcoder-base --do_train --do_eval --do_test --train_data_file=../../dataset/codesearchnet/$lang/train.jsonl --eval_data_file=../../dataset/codesearchnet/$lang/valid.jsonl --test_data_file=../../dataset/codesearchnet/$lang/test.jsonl --codebase_file=../../dataset/codesearchnet/$lang/codebase.jsonl --detector_path="../../RA/save_results/$lang/unixcoder/$mode/detector.pth" --num_train_epochs=100 --code_length=256 --nl_length=128 --train_batch_size=64 --eval_batch_size=64 --learning_rate=2e-5 --seed=123456 2>&1 | tee saved_models/$lang/$mode/train.log
+~~~
+
+> Training with CoCoSoDa. Add parameters "--without_ctrd" and "--without_ctc" in the "run.sh" file, and then execute the following script.
 
 ~~~bash
 cd ./MJL/HedgeCode_CoCoSoDa

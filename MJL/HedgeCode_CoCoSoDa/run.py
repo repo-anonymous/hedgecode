@@ -549,7 +549,7 @@ def train(args, model, tokenizer, pool):
     train_sampler = RandomSampler(train_dataset)
 
     if args.fewshot:
-        logger.info("Doing few-shot searching")
+        logger.info("Doing few-shot training")
         all_indices = list(range(len(train_dataset)))
         random_indices = random.sample(all_indices, int(len(train_dataset) * 0.2))
         train_sampler = SubsetRandomSampler(random_indices)
@@ -1122,7 +1122,9 @@ def parse_args():
     parser.add_argument("--detector_path", default=None, type=str,
                         help="The plugin checkpoint path")
 
-    parser.add_argument("--fewshot", default=False, type=bool, required=False, help="do shot setting")
+    parser.add_argument("--fewshot", default=False, action='store_true', required=False, help="do shot setting")
+    parser.add_argument("--without_ctc", default=False, action='store_true', required=False, help="Training with ctc")
+    parser.add_argument("--without_ctrd", default=False, action='store_true', required=False, help="Training with ctrd")
 
     parser.add_argument('--seed', type=int, default=3407,
                         help="random seed for initialization")

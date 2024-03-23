@@ -150,56 +150,61 @@ class MJLModel(nn.Module):
             loss_fct = CrossEntropyLoss()
             labels = torch.arange(code_inputs.size(0), device=scores.device)
             loss_cs = loss_fct(scores, labels)
+            loss = 0.8 * loss_cs
 
-            #### ctrd: text-code relevance detection ####
-            # build code-text pairs
-            bs = code_inputs.size(0)
-            # anchor_pairs_inputs, neg_pairs_inputs = build_pairs(bs, code_inputs, nl_inputs, self.tokenizer)
-            anchor_pairs_inputs = build_pairs(bs, code_inputs, nl_inputs, self.tokenizer)
-            outputs = self.encoder(anchor_pairs_inputs, attention_mask=anchor_pairs_inputs.ne(1)).last_hidden_state  # [B*length*768]
-            cls_feats = outputs[:, 0, :]  # [B*768]
-            label_feats = outputs[:, 1:self.num_classes + 1, :]  # [B*2*768]
-            predicts = self.dropout(self.fc(cls_feats))  # [B*2]
-            # data_augment
-            pos_inputs_ids = self._data_augment(anchor_pairs_inputs)  # B * len * 768
-            pos_outputs = self.encoder(pos_inputs_ids, attention_mask=anchor_pairs_inputs.ne(1)).last_hidden_state  # [B*len*768]
-            pos_cls_feats = pos_outputs[:, 0, :]  # B*768
-            pos_label_feats = pos_outputs[:, 1:self.num_classes + 1, :]  # [B*2*768]
-            pos_predicts = self.dropout(self.fc(pos_cls_feats))
+            if not self.args.without_ctrd:
+                #### ctrd: text-code relevance detection ####
+                # build code-text pairs
+                bs = code_inputs.size(0)
+                # anchor_pairs_inputs, neg_pairs_inputs = build_pairs(bs, code_inputs, nl_inputs, self.tokenizer)
+                anchor_pairs_inputs = build_pairs(bs, code_inputs, nl_inputs, self.tokenizer)
+                outputs = self.encoder(anchor_pairs_inputs, attention_mask=anchor_pairs_inputs.ne(1)).last_hidden_state  # [B*length*768]
+                cls_feats = outputs[:, 0, :]  # [B*768]
+                label_feats = outputs[:, 1:self.num_classes + 1, :]  # [B*2*768]
+                predicts = self.dropout(self.fc(cls_feats))  # [B*2]
+                # data_augment
+                pos_inputs_ids = self._data_augment(anchor_pairs_inputs)  # B * len * 768
+                pos_outputs = self.encoder(pos_inputs_ids, attention_mask=anchor_pairs_inputs.ne(1)).last_hidden_state  # [B*len*768]
+                pos_cls_feats = pos_outputs[:, 0, :]  # B*768
+                pos_label_feats = pos_outputs[:, 1:self.num_classes + 1, :]  # [B*2*768]
+                pos_predicts = self.dropout(self.fc(pos_cls_feats))
 
-            # Dynamic hard negative sampling
-            neg_cls_feats, gamms = self._compute_similar(self.queue, cls_feats)  # [B*768], [B]
-            neg_predicts = self.dropout(self.fc(cls_feats))  # [B*2]
-            fin_outputs = {
-                'predicts': predicts,
-                'cls_feats': cls_feats,
-                'label_feats': label_feats,
-                'pos_predicts': pos_predicts,
-                'pos_cls_feats': pos_cls_feats,
-                'pos_label_feats': pos_label_feats,
-                'neg_predicts': neg_predicts,
-                'neg_cls_feats': neg_cls_feats,
-                'gamms': gamms
-            }
-            targets = {
-                'label': torch.torch.ones(bs).to(torch.int64).to(self.args.device)
-            }
-            self._dequeue_and_enqueue(cls_feats)
+                # Dynamic hard negative sampling
+                neg_cls_feats, gamms = self._compute_similar(self.queue, cls_feats)  # [B*768], [B]
+                neg_predicts = self.dropout(self.fc(cls_feats))  # [B*2]
+                fin_outputs = {
+                    'predicts': predicts,
+                    'cls_feats': cls_feats,
+                    'label_feats': label_feats,
+                    'pos_predicts': pos_predicts,
+                    'pos_cls_feats': pos_cls_feats,
+                    'pos_label_feats': pos_label_feats,
+                    'neg_predicts': neg_predicts,
+                    'neg_cls_feats': neg_cls_feats,
+                    'gamms': gamms
+                }
+                targets = {
+                    'label': torch.torch.ones(bs).to(torch.int64).to(self.args.device)
+                }
+                self._dequeue_and_enqueue(cls_feats)
+                loss_ctrd = hedge_contrastive_loss(fin_outputs, targets)
+                loss += 0.1 * loss_ctrd
 
-            loss_ctrd = hedge_contrastive_loss(fin_outputs, targets)
-            #### ctc: code-text contrastive learning  ####
-            # data augment
-            augmented_code_inputs = augment_data(code_inputs, self.tokenizer).to(self.args.device)
-            augmented_nl_inputs = augment_data(nl_inputs,  self.tokenizer).to(self.args.device)
-            # get feature encodings
-            aug_code_vec = self.encoder(augmented_code_inputs, attention_mask=augmented_code_inputs.ne(1))[1]
-            aug_nl_vec = self.encoder(augmented_nl_inputs, attention_mask=augmented_nl_inputs.ne(1))[1]
-            # compute self-supervised contrastive loss
-            contrastive_loss_code = self_supervised_contrastive_loss(code_vec, aug_code_vec)
-            contrastive_loss_nl = self_supervised_contrastive_loss(nl_vec, aug_nl_vec)
-            contrastive_loss_nl_code = self_supervised_contrastive_loss(nl_vec, code_vec)
-            loss_ctc = contrastive_loss_code + contrastive_loss_nl + contrastive_loss_nl_code
-            loss = loss_cs + 0.1 * loss_ctc + 0.1 * loss_ctrd
+            if not self.args.without_ctc:
+                #### ctc: code-text contrastive learning  ####
+                # data augment
+                augmented_code_inputs = augment_data(code_inputs, self.tokenizer).to(self.args.device)
+                augmented_nl_inputs = augment_data(nl_inputs,  self.tokenizer).to(self.args.device)
+                # get feature encodings
+                aug_code_vec = self.encoder(augmented_code_inputs, attention_mask=augmented_code_inputs.ne(1))[1]
+                aug_nl_vec = self.encoder(augmented_nl_inputs, attention_mask=augmented_nl_inputs.ne(1))[1]
+                # compute self-supervised contrastive loss
+                contrastive_loss_code = self_supervised_contrastive_loss(code_vec, aug_code_vec)
+                contrastive_loss_nl = self_supervised_contrastive_loss(nl_vec, aug_nl_vec)
+                contrastive_loss_nl_code = self_supervised_contrastive_loss(nl_vec, code_vec)
+                loss_ctc = contrastive_loss_code + contrastive_loss_nl + contrastive_loss_nl_code
+                loss += 0.1 * loss_ctc
+
             return loss
 
         if code_inputs is not None:
