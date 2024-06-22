@@ -140,7 +140,7 @@ class MJLModel(nn.Module):
             #### cs: text-code search ####
             nl_vec = self.encoder(nl_inputs, attention_mask=nl_inputs.ne(1))[0]
             nl_vec = (nl_vec * nl_inputs.ne(1)[:, :, None]).sum(1) / nl_inputs.ne(1).sum(-1)[:, None]
-            torch.nn.functional.normalize(nl_vec, p=2, dim=1)
+            nl_vec = torch.nn.functional.normalize(nl_vec, p=2, dim=1)
 
             code_vec = self.encoder(code_inputs, attention_mask=code_inputs.ne(1))[0]
             code_vec = (code_vec * code_inputs.ne(1)[:, :, None]).sum(1) / code_inputs.ne(1).sum(-1)[:, None]
